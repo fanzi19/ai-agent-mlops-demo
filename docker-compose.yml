@@ -1,0 +1,141 @@
+version: '3.8'
+
+services:
+  # PostgreSQL for MLflow backend
+  postgres:
+    image: postgres:13
+    platform: linux/arm64  # For M1 Macs
+    container_name: mlflow-postgres
+    environment:
+      POSTGRES_DB: mlflow
+      POSTGRES_USER: mlflow
+      POSTGRES_PASSWORD: mlflow123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - ml-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mlflow"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # MLflow Tracking Server
+  mlflow:
+    image: python:3.9-slim
+    platform: linux/arm64
+    container_name: mlflow-server
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "5000:5000"
+    environment:
+      - MLFLOW_BACKEND_STORE_URI=postgresql://mlflow:mlflow123@postgres:5432/mlflow
+      - MLFLOW_DEFAULT_ARTIFACT_ROOT=/mlflow/artifacts
+    volumes:
+      - ./models:/mlflow/artifacts
+      - mlflow_data:/mlflow
+    command: |
+      bash -c "
+        apt-get update && apt-get install -y gcc &&
+        pip install mlflow psycopg2-binary &&
+        mlflow server 
+          --backend-store-uri postgresql://mlflow:mlflow123@postgres:5432/mlflow 
+          --default-artifact-root /mlflow/artifacts 
+          --host 0.0.0.0 
+          --port 5000
+      "
+    networks:
+      - ml-network
+
+  # Redis for feature store
+  redis:
+    image: redis:7-alpine
+    platform: linux/arm64
+    container_name: feature-store-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    networks:
+      - ml-network
+
+  # Ray Head Node
+  ray-head:
+    image: rayproject/ray:2.8.0-py310-aarch64
+    platform: linux/arm64
+    container_name: ray-head
+    ports:
+      - "8265:8265"  # Ray Dashboard
+      - "10001:10001"  # Ray Client
+      - "8000:8000"   # Ray Serve
+    volumes:
+      - ./:/workspace
+    working_dir: /workspace
+    environment:
+      - RAY_DISABLE_IMPORT_WARNING=1
+      - PYTHONPATH=/workspace/src
+    command: |
+      bash -c "
+        pip install -r requirements.txt &&
+        ray start --head --dashboard-host=0.0.0.0 --port=6379 --disable-usage-stats &&
+        tail -f /dev/null
+      "
+    networks:
+      - ml-network
+
+  # Ray Worker Node
+  ray-worker:
+    image: rayproject/ray:2.8.0-py310-aarch64
+    platform: linux/arm64
+    container_name: ray-worker
+    depends_on:
+      - ray-head
+    volumes:
+      - ./:/workspace
+    working_dir: /workspace
+    environment:
+      - RAY_DISABLE_IMPORT_WARNING=1
+      - PYTHONPATH=/workspace/src
+    command: |
+      bash -c "
+        pip install -r requirements.txt &&
+        sleep 15 &&
+        ray start --address=ray-head:6379 --disable-usage-stats &&
+        tail -f /dev/null
+      "
+    networks:
+      - ml-network
+
+  # Development container
+  dev-container:
+    image: python:3.9-slim
+    platform: linux/arm64
+    container_name: ml-dev
+    volumes:
+      - ./:/workspace
+    working_dir: /workspace
+    environment:
+      - PYTHONPATH=/workspace/src
+    command: |
+      bash -c "
+        apt-get update &&
+        apt-get install -y vim git curl wget &&
+        pip install -r requirements.txt &&
+        tail -f /dev/null
+      "
+    networks:
+      - ml-network
+
+volumes:
+  postgres_data:
+  mlflow_data:
+  redis_data:
+
+networks:
+  ml-network:
+    driver: bridge
