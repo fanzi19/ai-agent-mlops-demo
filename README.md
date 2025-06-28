@@ -32,3 +32,6 @@ make deploy
 
 # Run demo
 make demo
+
+# Run Web-demo
+make web-demo
