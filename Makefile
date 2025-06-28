@@ -54,14 +54,18 @@ demo: deploy ## Run interactive CLI demo
 	@echo "$(BLUE)💬 Running interactive CLI demo...$(NC)"
 	docker exec -it ray-head python scripts/demo.py || echo "$(RED)❌ Demo failed$(NC)"
 
-web-demo: deploy ## Start web interface demo
+web-demo: deploy ## Start web interface demo with CORS support
 	@echo "$(BLUE)🌐 Starting web demo server...$(NC)"
-	@echo "$(GREEN)🔗 Open: http://localhost:8080/web_demo.html$(NC)"
-	@echo "$(YELLOW)⚠️  Make sure port 8080 is available$(NC)"
-	docker exec -d ray-head python -m http.server 8080 --directory /workspace/scripts
+	@echo "$(BLUE)🌍 Starting CORS proxy...$(NC)"
+	@docker exec ray-head pkill -f cors_proxy || echo "$(YELLOW)⚠️  CORS proxy not running$(NC)"
+	@docker exec -d ray-head python scripts/cors_proxy.py
 	@sleep 2
-	@echo "$(GREEN)✅ Web demo server started$(NC)"
-	@echo "$(BLUE)📖 To stop: docker exec ray-head pkill -f 'http.server 8080'$(NC)"
+	@docker exec -d ray-head python -m http.server 8080 --directory /workspace/scripts
+	@sleep 2
+	@echo "$(GREEN)✅ Web demo server started with CORS support$(NC)"
+	@echo "$(GREEN)🔗 Open: http://localhost:8080/web_demo.html$(NC)"
+	@echo "$(YELLOW)⚠️  Make sure ports 8080 and 8001 are available$(NC)"
+	@echo "$(BLUE)📖 To stop: make stop-web-demo$(NC)"
 
 demo-help: ## Show demo usage examples
 	@echo "$(BLUE)📖 Demo Commands:$(NC)"
@@ -113,9 +117,11 @@ quick-demo: ## Quick demo without full pipeline (uses existing models)
 	@make demo
 
 # Advanced Commands
-stop-web-demo: ## Stop web demo server
+stop-web-demo: ## Stop web demo server and CORS proxy
 	@echo "$(BLUE)🛑 Stopping web demo server...$(NC)"
-	docker exec ray-head pkill -f 'http.server 8080' || echo "$(YELLOW)⚠️  Web server not running$(NC)"
+	@docker exec ray-head pkill -f 'http.server 8080' || echo "$(YELLOW)⚠️  Web server not running$(NC)"
+	@docker exec ray-head pkill -f cors_proxy || echo "$(YELLOW)⚠️  CORS proxy not running$(NC)"
+	@echo "$(GREEN)✅ Web demo and CORS proxy stopped$(NC)"
 
 restart: ## Restart all services
 	@echo "$(BLUE)🔄 Restarting services...$(NC)"

@@ -1,257 +1,154 @@
-#!/usr/bin/env python3
-"""
-Setup customer support training data for AI Agent MLOps Demo
-Generates realistic customer feedback and support interaction data
-"""
-
-import os
-import json
 import pandas as pd
-from datetime import datetime, timedelta
-import random
+import numpy as np
+import os
 
-def generate_customer_feedback_data():
-    """Generate realistic customer support feedback data"""
+def generate_training_data():
+    """Generate more realistic and diverse training data for better accuracy"""
     
-    # Customer issues and corresponding responses
-    support_scenarios = [
-        {
-            "issue_type": "billing",
-            "customer_message": "I was charged twice for my subscription this month. Can you help me get a refund?",
-            "agent_response": "I apologize for the billing error. I can see the duplicate charge on your account. I'll process a refund for the extra charge right away. You should see it reflected in 3-5 business days.",
-            "resolution_time_hours": 0.5,
-            "customer_satisfaction": "high",
-            "sentiment": "initially_frustrated_then_satisfied"
-        },
-        {
-            "issue_type": "technical",
-            "customer_message": "The app keeps crashing when I try to upload photos. This is really frustrating!",
-            "agent_response": "I understand how frustrating that must be. Let's troubleshoot this together. Can you tell me what device you're using and when the crashes started happening?",
-            "resolution_time_hours": 2.5,
-            "customer_satisfaction": "medium",
-            "sentiment": "frustrated"
-        },
-        {
-            "issue_type": "product_inquiry",
-            "customer_message": "Do you have any plans that include more storage space? I'm running out of room.",
-            "agent_response": "Yes! We have several plans with increased storage. Our Premium plan offers 500GB and Pro plan offers 2TB. Would you like me to show you the pricing and features?",
-            "resolution_time_hours": 0.25,
-            "customer_satisfaction": "high",
-            "sentiment": "curious"
-        },
-        {
-            "issue_type": "account_access",
-            "customer_message": "I forgot my password and the reset email isn't coming through.",
-            "agent_response": "I can help you regain access to your account. Let me check if there are any issues with your email delivery. Can you confirm the email address associated with your account?",
-            "resolution_time_hours": 1.0,
-            "customer_satisfaction": "medium",
-            "sentiment": "confused"
-        },
-        {
-            "issue_type": "feature_request",
-            "customer_message": "It would be great if you could add dark mode to the app. Many users have been asking for this.",
-            "agent_response": "Thank you for the feedback! Dark mode is actually on our development roadmap. I'll add your vote to this feature request. We expect to release it in the next quarter.",
-            "resolution_time_hours": 0.5,
-            "customer_satisfaction": "high",
-            "sentiment": "hopeful"
-        },
-        {
-            "issue_type": "cancellation",
-            "customer_message": "I want to cancel my subscription. Your service isn't meeting my needs.",
-            "agent_response": "I'm sorry to hear our service isn't meeting your expectations. Before we proceed with cancellation, could you tell me what specific issues you've encountered? There might be solutions we can explore.",
-            "resolution_time_hours": 3.0,
-            "customer_satisfaction": "low",
-            "sentiment": "disappointed"
-        },
-        {
-            "issue_type": "shipping",
-            "customer_message": "My order was supposed to arrive yesterday but I still haven't received it. Where is it?",
-            "agent_response": "I apologize for the delay. Let me track your order right now. I can see there was a shipping delay due to weather conditions. Your package is currently out for delivery and should arrive today.",
-            "resolution_time_hours": 0.75,
-            "customer_satisfaction": "medium",
-            "sentiment": "impatient"
-        },
-        {
-            "issue_type": "refund",
-            "customer_message": "The product I received was damaged. I'd like to return it for a full refund.",
-            "agent_response": "I'm very sorry the product arrived damaged. I'll immediately process a return label for you and initiate a full refund. You'll receive the return label via email within an hour.",
-            "resolution_time_hours": 1.5,
-            "customer_satisfaction": "high",
-            "sentiment": "disappointed_then_relieved"
-        }
+    # More comprehensive and realistic training examples
+    training_examples = [
+        # Account Access Issues - Negative
+        ("I can't log into my account and it's driving me crazy!", "account_access", "negative", 0.2),
+        ("Your login system is broken, I've been trying for hours", "account_access", "negative", 0.1),
+        ("Password reset isn't working, this is frustrating", "account_access", "negative", 0.3),
+        ("I'm locked out of my account, need help immediately", "account_access", "negative", 0.2),
+        ("Can't access my profile, getting error messages", "account_access", "neutral", 0.5),
+        ("Having trouble logging in, could you assist?", "account_access", "neutral", 0.6),
+        ("Login issue resolved, thank you for the help", "account_access", "positive", 0.8),
+        
+        # Shipping Issues - Mostly Negative
+        ("My package is lost and no one can tell me where it is!", "shipping", "negative", 0.1),
+        ("Order was supposed to arrive yesterday, still nothing", "shipping", "negative", 0.3),
+        ("Package damaged during shipping, very disappointed", "shipping", "negative", 0.2),
+        ("Delivery was delayed without any notification", "shipping", "negative", 0.3),
+        ("Wrong item delivered, this is unacceptable", "shipping", "negative", 0.2),
+        ("Tracking shows delivered but I never received it", "shipping", "negative", 0.1),
+        ("Package arrived late but in good condition", "shipping", "neutral", 0.6),
+        ("Delivery was on time, thank you", "shipping", "positive", 0.8),
+        ("Fast shipping, received earlier than expected!", "shipping", "positive", 0.9),
+        
+        # Technical Support - Mixed
+        ("Your app keeps crashing, this is ridiculous", "technical_support", "negative", 0.2),
+        ("Website is down, can't access anything", "technical_support", "negative", 0.3),
+        ("Having technical difficulties with the platform", "technical_support", "neutral", 0.5),
+        ("Need help setting up my new device", "technical_support", "neutral", 0.6),
+        ("Could you walk me through the installation?", "technical_support", "neutral", 0.7),
+        ("Technical issue resolved quickly, great support!", "technical_support", "positive", 0.9),
+        ("Your tech team is amazing, fixed everything", "technical_support", "positive", 0.9),
+        
+        # Billing Issues - Negative/Neutral
+        ("I was charged twice for the same order!", "billing", "negative", 0.1),
+        ("Unexpected charges on my account, need explanation", "billing", "negative", 0.3),
+        ("Billing error, please fix this immediately", "billing", "negative", 0.2),
+        ("Question about my invoice", "billing", "neutral", 0.6),
+        ("Need clarification on recent charges", "billing", "neutral", 0.5),
+        ("Billing issue resolved, thank you", "billing", "positive", 0.8),
+        
+        # Product Issues - Negative
+        ("Product doesn't work as advertised, want refund", "product_quality", "negative", 0.1),
+        ("Item broke after one day, poor quality", "product_quality", "negative", 0.2),
+        ("Not what I expected, very disappointed", "product_quality", "negative", 0.3),
+        ("Product quality is terrible", "product_quality", "negative", 0.2),
+        ("Item has defects, need replacement", "product_quality", "negative", 0.3),
+        ("Product is okay but not great", "product_quality", "neutral", 0.5),
+        ("Product works as expected", "product_quality", "positive", 0.7),
+        ("Excellent quality, very satisfied!", "product_quality", "positive", 0.9),
+        
+        # Compliments - Positive
+        ("Your customer service is outstanding!", "compliment", "positive", 0.9),
+        ("Thank you for the excellent support", "compliment", "positive", 0.9),
+        ("Best customer service I've ever experienced", "compliment", "positive", 1.0),
+        ("Your team is amazing, keep up the good work", "compliment", "positive", 0.9),
+        ("Really appreciate your quick response", "compliment", "positive", 0.8),
+        ("You guys are the best!", "compliment", "positive", 0.9),
+        
+        # General Inquiries - Neutral/Positive
+        ("What are your business hours?", "general", "neutral", 0.7),
+        ("How can I contact support?", "general", "neutral", 0.6),
+        ("Do you offer international shipping?", "general", "neutral", 0.7),
+        ("What's your return policy?", "general", "neutral", 0.6),
+        ("Thank you for the information", "general", "positive", 0.8),
+        
+        # Refund Requests - Negative/Neutral
+        ("I want my money back, this is unacceptable", "refund", "negative", 0.2),
+        ("Need to return this item and get refunded", "refund", "negative", 0.4),
+        ("Can I get a refund for this order?", "refund", "neutral", 0.5),
+        ("How do I process a return?", "refund", "neutral", 0.6),
+        ("Refund processed quickly, thank you", "refund", "positive", 0.8),
     ]
     
-    # Customer demographics and behavior patterns
-    customer_segments = [
-        {"segment": "enterprise", "interaction_frequency": "high", "value_tier": "premium"},
-        {"segment": "small_business", "interaction_frequency": "medium", "value_tier": "standard"},
-        {"segment": "individual", "interaction_frequency": "low", "value_tier": "basic"},
-        {"segment": "startup", "interaction_frequency": "high", "value_tier": "growth"}
+    # Add more variations with different phrasings
+    variations = []
+    
+    # Lost package variations
+    lost_package_phrases = [
+        ("Package never arrived, where is it?", "shipping", "negative", 0.2),
+        ("My order is missing, been waiting for weeks", "shipping", "negative", 0.1),
+        ("Shipment lost in transit, very frustrated", "shipping", "negative", 0.2),
+        ("Order disappeared, tracking shows nothing", "shipping", "negative", 0.2),
+        ("Package vanished, need immediate help", "shipping", "negative", 0.1),
     ]
     
-    # Generate expanded dataset
-    expanded_data = []
+    # Bad experience phrases
+    bad_experience_phrases = [
+        ("Worst experience ever with your company", "general", "negative", 0.1),
+        ("Terrible service, will never buy again", "general", "negative", 0.1),
+        ("Awful experience, completely disappointed", "general", "negative", 0.1),
+        ("Horrible customer service, very upset", "general", "negative", 0.1),
+        ("Bad experience overall, not recommended", "general", "negative", 0.2),
+    ]
     
-    for i in range(500):  # Generate 500 customer interactions
-        scenario = random.choice(support_scenarios)
-        segment = random.choice(customer_segments)
-        
-        # Generate timestamp (last 30 days)
-        days_ago = random.randint(0, 30)
-        timestamp = datetime.now() - timedelta(days=days_ago)
-        
-        interaction = {
-            "interaction_id": f"ticket_{i:05d}",
-            "timestamp": timestamp.isoformat(),
-            "customer_id": f"cust_{random.randint(1000, 9999)}",
-            "customer_segment": segment["segment"],
-            "interaction_channel": random.choice(["email", "chat", "phone", "app"]),
-            
-            # Issue details
-            "issue_type": scenario["issue_type"],
-            "priority": random.choice(["low", "medium", "high", "urgent"]),
-            "customer_message": scenario["customer_message"],
-            
-            # Agent response
-            "agent_id": f"agent_{random.randint(1, 20):02d}",
-            "agent_response": scenario["agent_response"],
-            "response_quality_score": random.uniform(0.7, 1.0),
-            
-            # Resolution metrics
-            "resolution_time_hours": scenario["resolution_time_hours"] + random.uniform(-0.5, 1.0),
-            "first_contact_resolution": random.choice([True, False]),
-            "escalated": random.choice([True, False]) if scenario["issue_type"] in ["technical", "billing"] else False,
-            
-            # Customer feedback
-            "customer_satisfaction": scenario["customer_satisfaction"],
-            "sentiment": scenario["sentiment"],
-            "csat_score": random.randint(1, 5),  # 1-5 rating
-            "nps_score": random.randint(-2, 2),  # Net Promoter Score
-            
-            # Additional metadata
-            "product_line": random.choice(["mobile_app", "web_platform", "api_service", "hardware"]),
-            "customer_tier": segment["value_tier"],
-            "follow_up_required": random.choice([True, False]),
-            "tags": random.sample(["urgent", "bug", "feature", "billing", "onboarding", "training"], k=random.randint(1, 3))
-        }
-        
-        # Ensure resolution time is positive
-        interaction["resolution_time_hours"] = max(0.1, interaction["resolution_time_hours"])
-        
-        expanded_data.append(interaction)
+    # Combine all examples
+    all_examples = training_examples + lost_package_phrases + bad_experience_phrases
     
-    return expanded_data
-
-def generate_feedback_analytics(data):
-    """Generate analytics data for customer feedback"""
-    df = pd.DataFrame(data)
+    # Create DataFrame
+    df = pd.DataFrame(all_examples, columns=['message', 'issue_type', 'sentiment', 'satisfaction_score'])
     
-    analytics = {
-        "total_interactions": len(data),
-        "date_range": {
-            "start": df['timestamp'].min(),
-            "end": df['timestamp'].max()
-        },
-        "issue_distribution": df['issue_type'].value_counts().to_dict(),
-        "satisfaction_metrics": {
-            "avg_csat": df['csat_score'].mean(),
-            "avg_nps": df['nps_score'].mean(),
-            "high_satisfaction_rate": (df['customer_satisfaction'] == 'high').mean(),
-            "first_contact_resolution_rate": df['first_contact_resolution'].mean()
-        },
-        "performance_metrics": {
-            "avg_resolution_time_hours": df['resolution_time_hours'].mean(),
-            "avg_response_quality": df['response_quality_score'].mean(),
-            "escalation_rate": df['escalated'].mean()
-        },
-        "channel_distribution": df['interaction_channel'].value_counts().to_dict(),
-        "segment_analysis": df.groupby('customer_segment').agg({
-            'csat_score': 'mean',
-            'resolution_time_hours': 'mean',
-            'customer_satisfaction': lambda x: (x == 'high').mean()
-        }).to_dict()
-    }
+    # Add more synthetic variations
+    synthetic_data = []
+    base_negative_words = ['terrible', 'awful', 'horrible', 'worst', 'bad', 'disappointed', 'frustrated', 'angry']
+    base_positive_words = ['excellent', 'amazing', 'great', 'wonderful', 'fantastic', 'perfect', 'outstanding']
     
-    return analytics
-
-def save_customer_data(data, analytics):
-    """Save customer support data and analytics"""
+    # Generate more shipping issues
+    for i in range(20):
+        if np.random.random() < 0.7:  # 70% negative shipping
+            word = np.random.choice(base_negative_words)
+            messages = [
+                f"My package is {word}, still haven't received it",
+                f"Shipping service is {word}, order is late",
+                f"Delivery is {word}, where is my order?",
+                f"{word.title()} shipping experience, package missing"
+            ]
+            synthetic_data.append((np.random.choice(messages), "shipping", "negative", np.random.uniform(0.1, 0.3)))
+        else:
+            word = np.random.choice(base_positive_words)
+            messages = [
+                f"Shipping was {word}, received quickly",
+                f"{word.title()} delivery service, very happy",
+                f"Package arrived safely, {word} job"
+            ]
+            synthetic_data.append((np.random.choice(messages), "shipping", "positive", np.random.uniform(0.8, 1.0)))
     
-    # Create data directory
-    os.makedirs("/workspace/data", exist_ok=True)
+    # Add synthetic data
+    synthetic_df = pd.DataFrame(synthetic_data, columns=['message', 'issue_type', 'sentiment', 'satisfaction_score'])
+    df = pd.concat([df, synthetic_df], ignore_index=True)
     
-    # Save main dataset
-    json_path = "/workspace/data/customer_feedback.json"
-    with open(json_path, 'w') as f:
-        json.dump(data, f, indent=2, default=str)
-    print(f"✅ Saved customer feedback data to {json_path}")
+    # Save to files
+    os.makedirs('data', exist_ok=True)
+    df.to_csv('data/training_data.csv', index=False)
     
-    # Save as CSV for analysis
-    df = pd.DataFrame(data)
-    csv_path = "/workspace/data/customer_feedback.csv"
-    df.to_csv(csv_path, index=False)
-    print(f"✅ Saved CSV data to {csv_path}")
+    # Create test data (smaller subset)
+    test_df = df.sample(n=min(20, len(df)//4), random_state=42)
+    test_df.to_csv('data/test_data.csv', index=False)
     
-    # Save analytics
-    analytics_path = "/workspace/data/feedback_analytics.json"
-    with open(analytics_path, 'w') as f:
-        json.dump(analytics, f, indent=2, default=str)
-    print(f"✅ Saved analytics to {analytics_path}")
+    print(f"✅ Generated {len(df)} training examples")
+    print(f"✅ Generated {len(test_df)} test examples")
+    print(f"📊 Issue type distribution:")
+    print(df['issue_type'].value_counts())
+    print(f"📊 Sentiment distribution:")
+    print(df['sentiment'].value_counts())
     
-    # Create training splits
-    train_size = int(0.8 * len(data))
-    train_data = data[:train_size]
-    test_data = data[train_size:]
-    
-    with open("/workspace/data/train_data.json", 'w') as f:
-        json.dump(train_data, f, indent=2, default=str)
-    
-    with open("/workspace/data/test_data.json", 'w') as f:
-        json.dump(test_data, f, indent=2, default=str)
-    
-    print(f"✅ Created training split: {len(train_data)} train, {len(test_data)} test")
-    
-    return len(data)
-
-def main():
-    """Generate customer support training data"""
-    print("🚀 Generating customer support training data...")
-    
-    try:
-        # Generate customer feedback data
-        print("📋 Creating customer interactions...")
-        feedback_data = generate_customer_feedback_data()
-        
-        # Generate analytics
-        print("📊 Computing analytics...")
-        analytics = generate_feedback_analytics(feedback_data)
-        
-        # Save everything
-        print("💾 Saving data...")
-        count = save_customer_data(feedback_data, analytics)
-        
-        print(f"\n✅ Successfully generated {count} customer interactions!")
-        
-        # Print summary
-        print("\n📈 Dataset Summary:")
-        print(f"   • Total interactions: {analytics['total_interactions']}")
-        print(f"   • Average CSAT: {analytics['satisfaction_metrics']['avg_csat']:.2f}/5")
-        print(f"   • First contact resolution: {analytics['satisfaction_metrics']['first_contact_resolution_rate']:.1%}")
-        print(f"   • Average resolution time: {analytics['performance_metrics']['avg_resolution_time_hours']:.1f} hours")
-        
-        print("\n🎯 Issue Types:")
-        for issue, count in analytics['issue_distribution'].items():
-            print(f"   • {issue}: {count}")
-        
-        print("\n📱 Channels:")
-        for channel, count in analytics['channel_distribution'].items():
-            print(f"   • {channel}: {count}")
-            
-    except Exception as e:
-        print(f"❌ Error generating customer data: {e}")
-        return 1
-    
-    return 0
+    return df
 
 if __name__ == "__main__":
-    exit(main())
+    generate_training_data()
