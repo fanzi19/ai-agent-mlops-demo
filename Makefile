@@ -37,7 +37,7 @@ status: ## Check status of all services
 	@echo ""
 	@echo "$(BLUE)🌐 Available URLs:$(NC)"
 	@echo "$(GREEN)Ray Dashboard:$(NC)    http://localhost:8265"
-	@echo "$(GREEN)MLflow UI:$(NC)        http://localhost:5000"
+	@echo "$(GREEN)MLflow UI:$(NC)        http://localhost:5001"
 	@echo "$(GREEN)Grafana:$(NC)          http://localhost:3000"
 	@echo "$(GREEN)Prometheus:$(NC)       http://localhost:9090"
 
