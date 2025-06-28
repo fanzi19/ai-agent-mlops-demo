@@ -67,6 +67,8 @@ services:
       - "8265:8265"  # Ray Dashboard
       - "10001:10001"  # Ray Client
       - "8000:8000"   # Ray Serve
+      - "8080:8080"  # Web Demo
+      - "8001:8001" # CORS Proxy
     volumes:
       - ./:/workspace
     working_dir: /workspace

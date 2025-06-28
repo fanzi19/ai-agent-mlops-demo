@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🤖 Customer Support AI Agent Demo</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+        .demo-form {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        input, select, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+            margin-bottom: 15px;
+            box-sizing: border-box;
+        }
+        textarea {
+            height: 100px;
+            resize: vertical;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .result {
+            background: #e8f5e8;
+            border: 2px solid #28a745;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+        .error {
+            background: #f8d7da;
+            border: 2px solid #dc3545;
+            color: #721c24;
+        }
+        .loading {
+            text-align: center;
+            color: #007bff;
+        }
+        .metric {
+            display: inline-block;
+            background: #007bff;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            margin: 5px;
+            font-size: 14px;
+        }
+        .examples {
+            background: #fff3cd;
+            border: 2px solid #ffeaa7;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        .example-btn {
+            background: #17a2b8;
+            font-size: 14px;
+            padding: 8px 15px;
+            margin: 5px;
+        }
+        .example-btn:hover {
+            background: #138496;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🤖 Customer Support AI Agent Demo</h1>
+        
+        <div class="examples">
+            <h3>📝 Try These Examples:</h3>
+            <button class="example-btn" onclick="fillExample('I cannot log into my account and I am very frustrated!', 'account_access')">
+                😠 Frustrated Login Issue
+            </button>
+            <button class="example-btn" onclick="fillExample('Your support team is amazing! Thank you so much!', 'compliment')">
+                😊 Happy Customer
+            </button>
+            <button class="example-btn" onclick="fillExample('My order is late and no one is helping me', 'shipping')">
+                📦 Shipping Problem
+            </button>
+            <button class="example-btn" onclick="fillExample('I need help setting up my new device', 'technical_support')">
+                🛠️ Tech Support
+            </button>
+        </div>
+
+        <form class="demo-form" onsubmit="predictSatisfaction(event)">
+            <label for="message">💬 Customer Message:</label>
+            <textarea id="message" placeholder="Enter a customer support message..." required></textarea>
+            
+            <label for="issue_type">📋 Issue Type:</label>
+            <select id="issue_type">
+                <option value="general">General</option>
+                <option value="account_access">Account Access</option>
+                <option value="billing">Billing</option>
+                <option value="shipping">Shipping</option>
+                <option value="technical_support">Technical Support</option>
+                <option value="complaint">Complaint</option>
+                <option value="compliment">Compliment</option>
+            </select>
+            
+            <button type="submit" id="predict-btn">🔮 Predict Customer Satisfaction</button>
+        </form>
+
+        <div id="result"></div>
+    </div>
+
+    <script>
+        function fillExample(message, issueType) {
+            document.getElementById('message').value = message;
+            document.getElementById('issue_type').value = issueType;
+        }
+
+        async function predictSatisfaction(event) {
+            event.preventDefault();
+            
+            const message = document.getElementById('message').value;
+            const issueType = document.getElementById('issue_type').value;
+            const resultDiv = document.getElementById('result');
+            const button = document.getElementById('predict-btn');
+            
+            // Show loading
+            button.disabled = true;
+            button.textContent = '🔄 Predicting...';
+            resultDiv.innerHTML = '<div class="result loading">🤖 AI is analyzing the message...</div>';
+            
+            try {
+                const startTime = Date.now();
+                const response = await fetch('http://localhost:8001/predict', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        issue_type: issueType
+                    })
+                });
+                
+                const endTime = Date.now();
+                const responseTime = endTime - startTime;
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    
+                    const satisfactionColor = {
+                        'high': '#28a745',
+                        'medium': '#ffc107', 
+                        'low': '#dc3545'
+                    }[result.predicted_satisfaction] || '#6c757d';
+                    
+                    const priorityColor = {
+                        'high': '#dc3545',
+                        'medium': '#ffc107',
+                        'low': '#28a745'
+                    }[result.recommended_priority] || '#6c757d';
+                    
+                    resultDiv.innerHTML = `
+                        <div class="result">
+                            <h3>🎯 AI Prediction Results</h3>
+                            <p><strong>📝 Message:</strong> "${result.message}"</p>
+                            <p><strong>📋 Issue Type:</strong> ${result.issue_type}</p>
+                            
+                            <div style="margin: 15px 0;">
+                                <span class="metric" style="background: ${satisfactionColor}">
+                                    😊 Satisfaction: ${result.predicted_satisfaction.toUpperCase()}
+                                </span>
+                                <span class="metric" style="background: ${priorityColor}">
+                                    ⚡ Priority: ${result.recommended_priority.toUpperCase()}
+                                </span>
+                                <span class="metric">
+                                    🎯 Confidence: ${(result.confidence * 100).toFixed(1)}%
+                                </span>
+                                <span class="metric">
+                                    ⚡ Response: ${responseTime}ms
+                                </span>
+                            </div>
+                            
+                            <p><strong>🕒 Timestamp:</strong> ${new Date(result.timestamp).toLocaleString()}</p>
+                        </div>
+                    `;
+                } else {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="result error">
+                        <h3>❌ Connection Error</h3>
+                        <p>Could not connect to the AI agent: ${error.message}</p>
+                        <p>Make sure the AI agent is running with: <code>make deploy</code></p>
+                    </div>
+                `;
+            } finally {
+                button.disabled = false;
+                button.textContent = '🔮 Predict Customer Satisfaction';
+            }
+        }
+
+        // Check if AI agent is running on page load
+        window.onload = async function() {
+            try {
+                const response = await fetch('http://localhost:8001/health');
+                if (response.ok) {
+                    console.log('✅ AI Agent is running!');
+                } else {
+                    throw new Error('Health check failed');
+                }
+            } catch (error) {
+                document.getElementById('result').innerHTML = `
+                    <div class="result error">
+                        <h3>⚠️ AI Agent Not Running</h3>
+                        <p>Please start the AI agent first:</p>
+                        <pre>make deploy</pre>
+                    </div>
+                `;
+            }
+        };
+    </script>
+</body>
+</html>

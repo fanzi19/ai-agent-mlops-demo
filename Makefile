@@ -1,54 +1,39 @@
-# Makefile for AI Agent MLOps Demo
-.PHONY: help up down logs status shell data train deploy demo test lint clean
+# Colors for output
+BLUE := \033[36m
+GREEN := \033[32m
+YELLOW := \033[33m
+RED := \033[31m
+NC := \033[0m
 
-# Colors for pretty output
-BLUE=\033[36m
-GREEN=\033[32m
-YELLOW=\033[33m
-RED=\033[31m
-NC=\033[0m # No Color
+.PHONY: help up down status logs shell data train deploy demo web-demo test lint clean setup demo-help
 
 help: ## Show this help message
-	@echo "$(BLUE)AI Agent MLOps Demo - Available Commands:$(NC)"
+	@echo "$(BLUE)🤖 Customer Support AI Agent - MLOps Demo$(NC)"
 	@echo ""
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
-		awk 'BEGIN {FS = ":.*?## "}; {printf "$(GREEN)%-15s$(NC) %s\n", $$1, $$2}'
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "$(BLUE)%-15s$(NC) %s\n", $$1, $$2}'
 
-# Docker Environment Management
+# Docker Management
 up: ## Start all services
-	@echo "$(BLUE)🚀 Starting AI Agent MLOps environment...$(NC)"
+	@echo "$(BLUE)🚀 Starting services...$(NC)"
 	docker-compose up -d
-	@echo "$(YELLOW)⏳ Waiting for services to start...$(NC)"
-	@sleep 30
-	@make status
+	@echo "$(GREEN)✅ Services started$(NC)"
 
 down: ## Stop all services
-	@echo "$(BLUE)🛑 Stopping all services...$(NC)"
+	@echo "$(BLUE)🛑 Stopping services...$(NC)"
 	docker-compose down
+	@echo "$(GREEN)✅ Services stopped$(NC)"
 
-restart: down up ## Restart all services
-
-logs: ## Show logs from all services
-	docker-compose logs -f
-
-status: ## Check status of all services
+status: ## Check service status
 	@echo "$(BLUE)📊 Service Status:$(NC)"
 	@docker-compose ps
-	@echo ""
-	@echo "$(BLUE)🌐 Available URLs:$(NC)"
-	@echo "$(GREEN)Ray Dashboard:$(NC)    http://localhost:8265"
-	@echo "$(GREEN)MLflow UI:$(NC)        http://localhost:5001"
-	@echo "$(GREEN)Grafana:$(NC)          http://localhost:3000"
-	@echo "$(GREEN)Prometheus:$(NC)       http://localhost:9090"
 
-# Development
-shell: ## Enter development container
-	@echo "$(BLUE)🐚 Entering development container...$(NC)"
-	docker exec -it ml-dev bash || echo "$(RED)❌ Development container not running. Run 'make up' first.$(NC)"
+logs: ## View logs
+	@echo "$(BLUE)📜 Viewing logs...$(NC)"
+	docker-compose logs -f
 
-ray-shell: ## Enter Ray head container
-	@echo "$(BLUE)⚡ Entering Ray head container...$(NC)"
-	docker exec -it ray-head bash || echo "$(RED)❌ Ray container not running. Run 'make up' first.$(NC)"
+shell: ## Access development container
+	@echo "$(BLUE)🐚 Opening shell in development container...$(NC)"
+	docker exec -it ml-dev bash
 
 # Data and Training
 data: ## Generate training data
@@ -64,9 +49,32 @@ deploy: ## Deploy AI agent
 	@echo "$(BLUE)🚀 Deploying AI agent...$(NC)"
 	docker exec ray-head python scripts/deploy_local.py || echo "$(RED)❌ Deployment failed$(NC)"
 
-demo: ## Run demo conversation
-	@echo "$(BLUE)💬 Running demo conversations...$(NC)"
-	docker exec ml-dev python scripts/run_demo.py || echo "$(RED)❌ Demo failed$(NC)"
+# Demo Commands
+demo: deploy ## Run interactive CLI demo
+	@echo "$(BLUE)💬 Running interactive CLI demo...$(NC)"
+	docker exec -it ray-head python scripts/demo.py || echo "$(RED)❌ Demo failed$(NC)"
+
+web-demo: deploy ## Start web interface demo
+	@echo "$(BLUE)🌐 Starting web demo server...$(NC)"
+	@echo "$(GREEN)🔗 Open: http://localhost:8080/web_demo.html$(NC)"
+	@echo "$(YELLOW)⚠️  Make sure port 8080 is available$(NC)"
+	docker exec -d ray-head python -m http.server 8080 --directory /workspace/scripts
+	@sleep 2
+	@echo "$(GREEN)✅ Web demo server started$(NC)"
+	@echo "$(BLUE)📖 To stop: docker exec ray-head pkill -f 'http.server 8080'$(NC)"
+
+demo-help: ## Show demo usage examples
+	@echo "$(BLUE)📖 Demo Commands:$(NC)"
+	@echo "  $(GREEN)make demo$(NC)      - Interactive CLI demo with test scenarios"
+	@echo "  $(GREEN)make web-demo$(NC)   - Beautiful web interface demo"
+	@echo "  $(GREEN)make deploy$(NC)     - Deploy AI agent (runs automatically with demos)"
+	@echo ""
+	@echo "$(BLUE)🎯 Demo Features:$(NC)"
+	@echo "  • Real-time customer satisfaction predictions"
+	@echo "  • Multiple issue type scenarios"
+	@echo "  • Interactive message testing"
+	@echo "  • Response time metrics"
+	@echo "  • Confidence scoring"
 
 # Testing and Quality
 test: ## Run tests
@@ -90,3 +98,28 @@ setup: ## First-time setup
 	@sleep 10
 	@make data
 	@echo "$(GREEN)✅ Setup complete! Run 'make status' to see available services$(NC)"
+
+# Pipeline Commands
+pipeline: ## Run complete ML pipeline (data -> train -> deploy -> demo)
+	@echo "$(BLUE)🔄 Running complete ML pipeline...$(NC)"
+	@make data
+	@make train  
+	@make deploy
+	@echo "$(GREEN)🎉 Pipeline complete! Try 'make demo' or 'make web-demo'$(NC)"
+
+quick-demo: ## Quick demo without full pipeline (uses existing models)
+	@echo "$(BLUE)⚡ Quick demo with existing models...$(NC)"
+	@make deploy
+	@make demo
+
+# Advanced Commands
+stop-web-demo: ## Stop web demo server
+	@echo "$(BLUE)🛑 Stopping web demo server...$(NC)"
+	docker exec ray-head pkill -f 'http.server 8080' || echo "$(YELLOW)⚠️  Web server not running$(NC)"
+
+restart: ## Restart all services
+	@echo "$(BLUE)🔄 Restarting services...$(NC)"
+	@make down
+	@make up
+	@echo "$(GREEN)✅ Services restarted$(NC)"
+
