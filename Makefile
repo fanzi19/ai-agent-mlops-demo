@@ -71,6 +71,9 @@ demo-help: ## Show demo usage examples
 	@echo "$(BLUE)📖 Demo Commands:$(NC)"
 	@echo "  $(GREEN)make demo$(NC)      - Interactive CLI demo with test scenarios"
 	@echo "  $(GREEN)make web-demo$(NC)   - Beautiful web interface demo"
+	@echo "  $(GREEN)make analytics$(NC)       - Start analytics dashboard"
+	@echo "  $(GREEN)make insights$(NC)        - Start AI insights service"
+	@echo "  $(GREEN)make analytics-full$(NC)  - Start complete analytics stack"
 	@echo "  $(GREEN)make deploy$(NC)     - Deploy AI agent (runs automatically with demos)"
 	@echo ""
 	@echo "$(BLUE)🎯 Demo Features:$(NC)"
@@ -79,6 +82,44 @@ demo-help: ## Show demo usage examples
 	@echo "  • Interactive message testing"
 	@echo "  • Response time metrics"
 	@echo "  • Confidence scoring"
+	@echo "  • AI-powered insights and recommendations"
+	@echo "  • Visual analytics dashboard"
+
+# Analytics Commands
+analytics: deploy ## Start analytics dashboard
+	@echo "$(BLUE)📊 Starting Analytics Dashboard...$(NC)"
+	@docker exec ray-head pkill -f dashboard.py || echo "$(YELLOW)⚠️  Dashboard not running$(NC)"
+	@docker exec -d ray-head python3 /workspace/src/actions/analytics/dashboard.py
+	@sleep 2
+	@echo "$(GREEN)✅ Analytics Dashboard started$(NC)"
+	@echo "$(GREEN)🔗 Open: http://localhost:5002$(NC)"
+	@echo "$(BLUE)📖 To stop: docker exec ray-head pkill -f dashboard.py$(NC)"
+
+setup-models: deploy ## Pull required AI models
+	@echo "$(BLUE)📥 Pulling AI models...$(NC)"
+	@docker exec ollama-server ollama pull llama3.2:1b
+	@echo "$(GREEN)✅ Models ready$(NC)"
+
+insights: deploy setup-models ## Start AI insights service
+	@echo "$(BLUE)🤖 Starting AI Insights Service...$(NC)"
+	@docker exec ray-head pkill -f insights_service.py || echo "$(YELLOW)⚠️  Insights service not running$(NC)"
+	@docker exec -d ray-head python3 /workspace/src/actions/analytics/insights_service.py
+	@sleep 3
+	@echo "$(GREEN)✅ AI Insights Service started$(NC)"
+	@echo "$(GREEN)🔗 Health check: http://localhost:5003/health$(NC)"
+	@echo "$(GREEN)🔗 Insights API: http://localhost:5003/api/insights$(NC)"
+
+analytics-full: deploy insights analytics ## Start complete analytics stack
+	@echo "$(GREEN)✅ Complete Analytics Stack Ready!$(NC)"
+	@echo "$(GREEN)📊 Dashboard: http://localhost:5002$(NC)"
+	@echo "$(GREEN)🤖 Insights API: http://localhost:5003$(NC)"
+	@echo "$(BLUE)💡 Send some requests first to see data!$(NC)"
+
+stop-analytics: ## Stop analytics services
+	@echo "$(BLUE)🛑 Stopping Analytics Services...$(NC)"
+	@docker exec ray-head pkill -f dashboard.py || echo "$(YELLOW)⚠️  Dashboard not running$(NC)"
+	@docker exec ray-head pkill -f insights_service.py || echo "$(YELLOW)⚠️  Insights service not running$(NC)"
+	@echo "$(GREEN)✅ Analytics services stopped$(NC)"
 
 # Testing and Quality
 test: ## Run tests
@@ -129,3 +170,23 @@ restart: ## Restart all services
 	@make up
 	@echo "$(GREEN)✅ Services restarted$(NC)"
 
+reset-analytics: ## Reset analytics data and restart services
+	@echo "$(BLUE)🧹 Resetting Analytics Data...$(NC)"
+	@docker exec ray-head pkill -f dashboard.py || echo "$(YELLOW)⚠️  Dashboard not running$(NC)"
+	@docker exec ray-head pkill -f insights_service.py || echo "$(YELLOW)⚠️  Insights service not running$(NC)"
+	@docker exec ray-head rm -f /workspace/data/analytics.db || echo "$(YELLOW)⚠️  No database to remove$(NC)"
+	@sleep 2
+	@echo "$(BLUE)🔄 Restarting Analytics Services...$(NC)"
+	@docker exec -d ray-head python3 /workspace/src/actions/analytics/dashboard.py
+	@docker exec -d ray-head python3 /workspace/src/actions/analytics/insights_service.py
+	@sleep 3
+	@echo "$(GREEN)✅ Analytics data reset complete!$(NC)"
+	@echo "$(GREEN)📊 Dashboard: http://localhost:5002$(NC)"
+	@echo "$(GREEN)🤖 Insights: http://localhost:5003$(NC)"
+	@echo "$(BLUE)💡 Send some test requests to generate new data!$(NC)"
+
+clean-all: stop ## Clean everything and reset to fresh state
+	@echo "$(BLUE)🧹 Cleaning all data and containers...$(NC)"
+	@docker volume rm ai-agent-mlops-demo_analytics_data 2>/dev/null || true
+	@docker volume rm ai-agent-mlops-demo_ollama_data 2>/dev/null || true
+	@echo "$(GREEN)✅ All data cleaned$(NC)"

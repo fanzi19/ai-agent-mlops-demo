@@ -36,9 +36,11 @@ services:
     volumes:
       - ./models:/mlflow/artifacts
       - mlflow_data:/mlflow
+      - ./requirements.txt:/requirements.txt  # Add requirements file
     command: |
       bash -c "
         apt-get update && apt-get install -y gcc &&
+        pip install -r /requirements.txt &&
         pip install mlflow psycopg2-binary &&
         gunicorn --bind 0.0.0.0:5000 --workers 4 --timeout 60 --keep-alive 2 --max-requests 1000 mlflow.server:app
       "
@@ -58,6 +60,18 @@ services:
     networks:
       - ml-network
 
+  # Ollama for insights service
+  ollama:
+    image: ollama/ollama
+    platform: linux/arm64
+    container_name: ollama-server
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      - ml-network
+
   # Ray Head Node
   ray-head:
     image: rayproject/ray:2.9.0-py310-aarch64
@@ -69,12 +83,15 @@ services:
       - "8000:8000"   # Ray Serve
       - "8080:8080"  # Web Demo
       - "8001:8001" # CORS Proxy
+      - "5002:5002" # Analytics Dashboard 
+      - "5003:5003" # Insights Service
     volumes:
       - ./:/workspace
     working_dir: /workspace
     environment:
       - RAY_DISABLE_IMPORT_WARNING=1
       - PYTHONPATH=/workspace/src
+      - OLLAMA_HOST=http://ollama:11434
     command: |
       bash -c "
         pip install -r requirements.txt &&
@@ -83,6 +100,8 @@ services:
       "
     networks:
       - ml-network
+    depends_on:
+      - ollama
 
   # Ray Worker Node
   ray-worker:
@@ -131,6 +150,7 @@ volumes:
   postgres_data:
   mlflow_data:
   redis_data:
+  ollama_data:  # Add ollama data volume
 
 networks:
   ml-network:
